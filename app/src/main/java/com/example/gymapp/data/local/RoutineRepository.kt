@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.example.gymapp.data.model.DayRoutine
 import com.example.gymapp.data.model.Exercise
+import com.example.gymapp.data.model.ExerciseSerie
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
@@ -108,6 +109,17 @@ class RoutineRepository(private val context: Context) {
                 exerciseObject.put("name", exercise.name)
                 exerciseObject.put("sets", exercise.sets)
                 exerciseObject.put("reps", exercise.reps)
+
+                val seriesArray = JSONArray()
+                exercise.seriesList.forEach { serie ->
+                    val serieObject = JSONObject()
+                    serieObject.put("id", serie.id)
+                    serieObject.put("reps", serie.reps)
+                    serieObject.put("isCompleted", serie.isCompleted)
+                    seriesArray.put(serieObject)
+                }
+
+                exerciseObject.put("seriesList", seriesArray)
                 exercisesArray.put(exerciseObject)
             }
 
@@ -125,32 +137,39 @@ class RoutineRepository(private val context: Context) {
 
         for (i in 0 until routinesArray.length()) {
             val routineObject = routinesArray.getJSONObject(i)
-            val dayName = routineObject.getString("dayName")
-            val workoutTitle = routineObject.getString("workoutTitle")
+           // val dayName = routineObject.getString("dayName")
+            //val workoutTitle = routineObject.getString("workoutTitle")
 
             val exercisesArray = routineObject.getJSONArray("exercises")
             val exercises = mutableListOf<Exercise>()
 
             for (j in 0 until exercisesArray.length()) {
                 val exerciseObject = exercisesArray.getJSONObject(j)
-                exercises.add(
-                    Exercise(
-                        name = exerciseObject.getString("name"),
-                        sets = exerciseObject.getInt("sets"),
-                        reps = exerciseObject.getInt("reps")
-                    )
-                )
+
+                val seriesArray = exerciseObject.getJSONArray("seriesList")
+                val seriesList = mutableListOf<ExerciseSerie>()
+                for (k in 0 until seriesArray.length()) {
+                    val serieObject = seriesArray.getJSONObject(k)
+                    seriesList.add(ExerciseSerie(
+                        id = serieObject.getInt("id"),
+                        reps = serieObject.getInt("reps"),
+                        isCompleted = serieObject.getBoolean("isCompleted")
+                    ))
+                }
+
+                exercises.add(Exercise(
+                    name = exerciseObject.getString("name"),
+                    sets = exerciseObject.getInt("sets"),
+                    reps = exerciseObject.getInt("reps"),
+                    seriesList = seriesList // Asignar la lista cargada
+                ))
             }
-
-            routines.add(
-                DayRoutine(
-                    dayName = dayName,
-                    workoutTitle = workoutTitle,
-                    exercises = exercises
-                )
-            )
+            routines.add(DayRoutine(
+                dayName = routineObject.getString("dayName"),
+                workoutTitle = routineObject.getString("workoutTitle"),
+                exercises = exercises
+            ))
         }
-
         return routines
     }
 }

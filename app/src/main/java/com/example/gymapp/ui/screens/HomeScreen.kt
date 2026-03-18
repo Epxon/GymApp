@@ -40,11 +40,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.example.gymapp.data.model.DayRoutine
 import com.example.gymapp.data.model.Exercise
+import androidx.compose.material3.TextButton
 
 @Composable
 fun HomeScreen(
     routines: List<DayRoutine>,
     onAddExerciseClick: () -> Unit,
+    onExerciseClick: (dayName: String, Exercise) -> Unit,
     modifier: Modifier = Modifier
 ){
     if (routines.isEmpty()) return
@@ -84,7 +86,10 @@ fun HomeScreen(
             modifier = Modifier.weight(1f)
         ) {
             items(selectedRoutine.exercises) { exercise ->
-                ExerciseCard(exercise = exercise)
+                ExerciseCard(
+                    exercise = exercise,
+                    onClick = { onExerciseClick(selectedRoutine.dayName, exercise) }
+                )
             }
 
             item {
@@ -162,8 +167,9 @@ fun DaysSelector(
 }
 
 @Composable
-fun ExerciseCard(exercise: Exercise) {
+fun ExerciseCard(exercise: Exercise, onClick: () -> Unit) {
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)

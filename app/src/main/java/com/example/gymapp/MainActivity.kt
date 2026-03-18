@@ -6,13 +6,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.gymapp.app.CurrentScreen
 import com.example.gymapp.app.GymAppViewModel
 import com.example.gymapp.ui.screens.AddExerciseScreen
 import com.example.gymapp.ui.screens.HomeScreen
+import com.example.gymapp.ui.screens.TimerScreen
+import com.example.gymapp.ui.screens.WorkoutScreen
+import com.example.gymapp.ui.themes.GymAppTheme
 
 class MainActivity : ComponentActivity() {
 
@@ -23,31 +24,45 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-            var showAddExerciseScreen by remember { mutableStateOf(false) }
 
-            if (showAddExerciseScreen) {
-                AddExerciseScreen(
-                    routines = uiState.routines,
-                    onSave = { dayName, workoutTitle, exercise ->
-                        viewModel.addExerciseToDay(
-                            dayName = dayName,
-                            workoutTitle = workoutTitle,
-                            exercise = exercise
+            GymAppTheme {
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                when (uiState.currentScreen) {
+                    CurrentScreen.Home -> {
+                        HomeScreen(
+                            routines = uiState.routines,
+                            onAddExerciseClick = { viewModel.navigateTo(CurrentScreen.AddExercise) },
+                            onExerciseClick = { dayName, exercise ->
+                                viewModel.startWorkoutSession(dayName, exercise)
+                            }
                         )
-                        showAddExerciseScreen = false
-                    },
-                    onCancel = {
-                        showAddExerciseScreen = false
                     }
-                )
-            } else {
-                HomeScreen(
-                    routines = uiState.routines,
-                    onAddExerciseClick = {
-                        showAddExerciseScreen = true
+                    CurrentScreen.AddExercise -> {
+                        AddExerciseScreen(
+                            routines = uiState.routines,
+                            onSave = { dayName, workoutTitle, exercise ->
+                                viewModel.addExerciseToDay(dayName, workoutTitle, exercise)
+                            },
+                            onCancel = { viewModel.navigateTo(CurrentScreen.Home) }
+                        )
                     }
-                )
+                    CurrentScreen.ActiveWorkout -> {
+                        WorkoutScreen(
+                            exercise = uiState.activeExercise,
+                            onSerieDone = { serieId ->
+                                viewModel.completeSerieAndStartTimer(serieId)
+                            },
+                            onBack = { viewModel.navigateTo(CurrentScreen.Home) }
+                        )
+                    }
+                    CurrentScreen.Timer -> {
+                        TimerScreen(
+                            secondsRemaining = uiState.timerSecondsRemaining,
+                            onCancel = { viewModel.cancelTimer() }
+                        )
+                    }
+                }
             }
         }
     }
