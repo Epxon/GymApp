@@ -101,27 +101,49 @@ class GymAppViewModel(application: Application) : AndroidViewModel(application) 
     // --- LÓGICA DEL TEMPORIZADOR ---
 
     private fun startTimer() {
-        countDownTimer?.cancel() // Cancelar si ya había uno
-
         _uiState.update { it.copy(
             currentScreen = CurrentScreen.Timer,
-            timerSecondsRemaining = DEFAULT_TIMER_MS / 1000,
             isTimerRunning = true
         ) }
+        updateAndRestartTimer(DEFAULT_TIMER_MS / 1000)
+    }
 
-        countDownTimer = object : CountDownTimer(DEFAULT_TIMER_MS, 1000) {
-            override fun onTick(millisUntilFinished: Long) {
-                _uiState.update { it.copy(timerSecondsRemaining = millisUntilFinished / 1000) }
-            }
+    fun addMinute() {
+        val currentSeconds = _uiState.value.timerSecondsRemaining
+        updateAndRestartTimer(currentSeconds + 60)
+    }
 
-            @RequiresPermission(Manifest.permission.VIBRATE)
-            override fun onFinish() {
-                _uiState.update { it.copy(isTimerRunning = false) }
-                vibrate()
-                // Volver automáticamente a la pantalla de series
-                navigateTo(CurrentScreen.ActiveWorkout)
-            }
-        }.start()
+    fun subtractMinute() {
+        val currentSeconds = _uiState.value.timerSecondsRemaining
+        // Evitamos que el tiempo sea menor a 0
+        val newTime = if (currentSeconds > 60) currentSeconds - 60 else 0
+        updateAndRestartTimer(newTime)
+    }
+
+    private fun updateAndRestartTimer(secondsRemaining: Long) {
+        countDownTimer?.cancel() // Cancelar si ya había uno corriendo
+
+        _uiState.update { it.copy(timerSecondsRemaining = secondsRemaining) }
+
+        if (secondsRemaining > 0) {
+            countDownTimer = object : CountDownTimer(secondsRemaining * 1000, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    _uiState.update { it.copy(timerSecondsRemaining = millisUntilFinished / 1000) }
+                }
+
+                @RequiresPermission(Manifest.permission.VIBRATE)
+                override fun onFinish() {
+                    _uiState.update { it.copy(isTimerRunning = false) }
+                    vibrate()
+                    // Volver automáticamente a la pantalla de series
+                    navigateTo(CurrentScreen.ActiveWorkout)
+                }
+            }.start()
+        } else {
+            // Si el tiempo llega a 0 al restar, terminamos el temporizador directamente
+            _uiState.update { it.copy(isTimerRunning = false) }
+            navigateTo(CurrentScreen.ActiveWorkout)
+        }
     }
 
     fun cancelTimer() {

@@ -59,6 +59,8 @@ class MainActivity : ComponentActivity() {
                     CurrentScreen.Timer -> {
                         TimerScreen(
                             secondsRemaining = uiState.timerSecondsRemaining,
+                            onAddMinute = { viewModel.addMinute() },
+                            onSubtractMinute = { viewModel.subtractMinute() },
                             onCancel = { viewModel.cancelTimer() }
                         )
                     }
